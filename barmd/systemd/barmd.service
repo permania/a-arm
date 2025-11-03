@@ -1,0 +1,20 @@
+[Unit]
+Description=Team β Robotic Arm Server
+After=network.target
+
+[Service]
+User=barmd
+Group=barmd
+
+ExecStart=/opt/barmd/barmd
+
+WorkingDirectory=/opt/barmd
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
