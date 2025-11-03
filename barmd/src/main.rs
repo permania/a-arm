@@ -4,15 +4,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use std::os::unix::net::{UnixListener, UnixStream};
+
 fn main() {
-    println!("Begin");
-    let mut i: i32 = 0;
-    loop {
-	if i > 100 {
-	    break
-	}
-	println!("{i}");
-	i += 1;
-    }
-    println!("End");
+    println!("Hello, world!");
 }
