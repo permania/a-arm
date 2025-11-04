@@ -7,14 +7,14 @@ GROUP = barmd
 
 .PHONY: all build install user
 
-all: build
+all: install
 
 build:
 	cargo build --release
 
 user:
 	@if ! id -u $(USER) >/dev/null 2>&1; then \
-	    echo "create $(USER)..."; \
+	    echo "create $(USER)"; \
 	    sudo useradd --system --no-create-home --shell /usr/sbin/nologin $(USER); \
 	else \
 	    echo "$(USER) already exists"; \
