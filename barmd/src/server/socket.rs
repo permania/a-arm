@@ -11,8 +11,9 @@ use std::{
 };
 
 use byteorder::{LittleEndian, ReadBytesExt};
+use log::{error, info, warn};
 
-use crate::error::{ArmError, RESPONSE_REQUEST_INVALID_ERROR};
+use crate::error::{ArmError, ERROR_INVALID_REQUEST};
 use crate::math::kinematics;
 
 const SOCKET_PATH: &str = "/tmp/barmd.sock";
@@ -23,6 +24,7 @@ pub struct SocketConnection {
 
 impl SocketConnection {
     pub fn new(stream: UnixStream) -> Self {
+	info!("Connection initialized");
         Self { stream }
     }
 
@@ -36,21 +38,24 @@ impl SocketConnection {
                     if let ArmError::Io(_) = e {
                         break;
                     } else {
-                        eprintln!("{e:?}");
+                        error!("{e:?}");
                         continue;
                     }
                 }
             };
 
+	    let buf_round = buf.map(|n| (n * 100.0).round() / 100.0);
+	    info!("Incoming Request: {:?}", buf_round);
+
             let angles = match kinematics::calculate_angles(CoordinateRequest {
-                x: buf[0],
-                y: buf[1],
-                z: buf[2],
+                x: buf_round[0],
+                y: buf_round[1],
+                z: buf_round[2],
             }) {
                 Some(a) => a,
                 None => {
-                    eprintln!("{}", ArmError::InvalidCoordinates(buf[0], buf[1], buf[2]));
-                    CoordinateResponse::from(RESPONSE_REQUEST_INVALID_ERROR)
+                    warn!("{}", ArmError::InvalidCoordinates(buf[0], buf[1], buf[2]));
+                    CoordinateResponse::from(ERROR_INVALID_REQUEST)
                 }
             };
 
@@ -63,7 +68,7 @@ impl SocketConnection {
 
 impl Drop for SocketConnection {
     fn drop(&mut self) {
-        println!("connection dropped");
+        info!("Connection dropped");
     }
 }
 
@@ -129,10 +134,7 @@ pub fn begin() -> Result<UnixListener, ArmError> {
 }
 
 fn respond_to_client(stream: &mut UnixStream, data: [u8; 4]) {
-    for byte in &data {
-	print!("0x{:02X} ", byte);
-    }
-    println!();
+    info!("Response: {:02x?}", data);
     _ = stream.write_all(&data);
 }
 

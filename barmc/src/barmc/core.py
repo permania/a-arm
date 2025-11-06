@@ -5,6 +5,7 @@
 import socket
 import struct
 import time
+import random
 
 SOCKET_PATH = "/tmp/barmd.sock"
 
@@ -17,7 +18,7 @@ def recv_exact(sock, n):
         buf += chunk
         return buf
 
-RESPONSE_REQUEST_INVALID_ERROR = (0x00, 0x00, 0x0001)
+ERROR_REQUEST_INVALID = (0x00, 0x00, 0x0001)
 
 def send(x, y, z, s):
     print(f"sending: {x:.2f}, {y:.2f}, {z:.2f}")
@@ -26,29 +27,24 @@ def send(x, y, z, s):
     resp = recv_exact(s, 4)
     a, b, c = struct.unpack("<BBH", resp)
 
-    if (a, b, c) == RESPONSE_REQUEST_INVALID_ERROR:
+    if (a, b, c) == ERROR_REQUEST_INVALID:
         print(f"invalid request for ({x}, {y}, {z}), error {c}")
     else:
         print(f"response: shoulder {a}, elbow {b}, rotation {c}")
-
-    time.sleep(0.05)
 
 def main():
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         s.connect(SOCKET_PATH)
 
-        import numpy as np
+        send(0, 0, 0, s)
 
-        MAX_REACH = 12
-        STEP = 1
-        Z_STEPS = [0, 1, 2, 3, 4, 5, 10, 15]
+        while True:
+            x = random.uniform(-10, 10)
+            y = random.uniform(-10, 10)
+            z = random.uniform(-10, 10)
+            send(x, y, z, s)
 
-        for z in Z_STEPS:
-            for x in np.arange(-MAX_REACH, MAX_REACH + STEP, STEP):
-                for y in np.arange(-MAX_REACH, MAX_REACH + STEP, STEP):
-                    dt = (x**2 + y**2 + z**2)**0.5
-                    if dt <= MAX_REACH:
-                        send(float(x), float(y), float(z), s)
+            time.sleep(0.05)
 
 if __name__ == "__main__":
     main()
