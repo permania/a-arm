@@ -14,16 +14,16 @@ use server::socket::{self, SocketConnection};
 
 fn init_logger() -> Result<(), ArmError> {
     println!("Initializing Logger");
-    
+
     let colors = ColoredLevelConfig::new()
-	.info(Color::Green)
-	.warn(Color::Yellow)
-	.error(Color::Red);
+        .info(Color::Green)
+        .warn(Color::Yellow)
+        .error(Color::Red);
 
     fern::Dispatch::new()
-	.format(move |out, message, record| {
-	    out.finish(format_args!(
-		"[{} {}] {}",
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "[{} {}] {}",
                 colors.color(record.level()),
                 record.target(),
                 message
@@ -41,7 +41,7 @@ fn main() -> Result<(), ArmError> {
     let listener = socket::begin()?;
     init_logger()?;
     info!("Logger Initialized");
-   
+
     for stream in listener.incoming() {
         match stream {
             Ok(s) => {

@@ -24,14 +24,14 @@ pub struct SocketConnection {
 
 impl SocketConnection {
     pub fn new(stream: UnixStream) -> Self {
-	info!("Connection initialized");
+        info!("Connection initialized");
         Self { stream }
     }
 
     pub fn handle_client(&mut self) -> Result<(), ArmError> {
         let stream = &mut self.stream;
 
-        Ok(loop {
+        loop {
             let buf: [f64; 3] = match try_read_f64_array::<3>(stream) {
                 Ok(b) => b,
                 Err(e) => {
@@ -44,8 +44,8 @@ impl SocketConnection {
                 }
             };
 
-	    let buf_round = buf.map(|n| (n * 100.0).round() / 100.0);
-	    info!("Incoming Request: {:?}", buf_round);
+            let buf_round = buf.map(|n| (n * 100.0).round() / 100.0);
+            info!("Incoming Request: {:?}", buf_round);
 
             let angles = match kinematics::calculate_angles(CoordinateRequest {
                 x: buf_round[0],
@@ -54,15 +54,19 @@ impl SocketConnection {
             }) {
                 Some(a) => a,
                 None => {
-                    warn!("{}", ArmError::InvalidCoordinates(buf[0], buf[1], buf[2]));
+                    warn!(
+                        "{}",
+                        ArmError::InvalidCoordinates(buf_round[0], buf_round[1], buf_round[2])
+                    );
                     CoordinateResponse::from(ERROR_INVALID_REQUEST)
                 }
             };
 
             let data = angles_to_byte_stream(angles);
 
-            respond_to_client(stream, data)
-        })
+            respond_to_client(stream, data)?
+        }
+        Ok(())
     }
 }
 
@@ -133,9 +137,10 @@ pub fn begin() -> Result<UnixListener, ArmError> {
     Ok(UnixListener::bind(SOCKET_PATH)?)
 }
 
-fn respond_to_client(stream: &mut UnixStream, data: [u8; 4]) {
+fn respond_to_client(stream: &mut UnixStream, data: [u8; 4]) -> Result<(), ArmError> {
     info!("Response: {:02x?}", data);
-    _ = stream.write_all(&data);
+    stream.write_all(&data)?;
+    Ok(())
 }
 
 /// Converts a `CoordinateResponse` to a stream of `u8` bytes fit for writing to a `UnixStream`
@@ -149,8 +154,8 @@ fn angles_to_byte_stream(angles: CoordinateResponse) -> [u8; 4] {
 
 fn try_read_f64_array<const N: usize>(stream: &mut UnixStream) -> Result<[f64; N], ArmError> {
     let mut arr = [0f64; N];
-    for i in 0..N {
-        arr[i] = stream.read_f64::<LittleEndian>()?;
+    for i in arr.iter_mut() {
+        *i = stream.read_f64::<LittleEndian>()?;
     }
     Ok(arr)
 }
