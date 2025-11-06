@@ -3,29 +3,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
+mod error;
+mod math;
+mod server;
 
-use std::{error::Error, fs, io::{BufReader, BufRead}, os::unix::net::{UnixListener, UnixStream}};
+use error::ArmError;
+use server::socket::{self, SocketConnection};
 
-const SOCKET_PATH: &'static str = "/tmp/barmd.sock";
-
-fn main() -> Result<(), Box<dyn Error>> {
-    if fs::exists(SOCKET_PATH)? {
-	fs::remove_file(SOCKET_PATH)?;
-    }
-
-    let listener = UnixListener::bind(SOCKET_PATH)?;
+fn main() -> Result<(), ArmError> {
+    let listener = socket::begin()?;
 
     for stream in listener.incoming() {
-	handle_client(stream?)?;
+        match stream {
+            Ok(s) => {
+                let mut conn = SocketConnection::new(s);
+                conn.handle_client()?;
+            }
+            Err(e) => {
+                todo!("handle stream errors: {e}");
+            }
+        }
     }
 
-    Ok(())
-}
-
-fn handle_client(stream: UnixStream) -> Result<(), Box<dyn Error>> {
-    let stream = BufReader::new(stream);
-    for line in stream.lines() {
-        println!("{}", line?);
-    }
     Ok(())
 }
