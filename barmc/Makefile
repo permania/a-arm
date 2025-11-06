@@ -4,7 +4,7 @@ POETRY := poetry
 
 .PHONY: run
 run:
-	$(POETRY) run python -m src.barmc.core
+	sudo -E $(POETRY) run python -m src.barmc.core
 
 .PHONY: install
 install:
